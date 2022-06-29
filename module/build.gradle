@@ -65,6 +65,9 @@ afterEvaluate {
             from("$buildDir/intermediates/stripped_native_libs/$variantLowered/out/lib") {
                 into 'lib'
             }
+            from("$buildDir/intermediates/cmake/$variantLowered/obj") {
+                into 'obj'
+            }
             doLast {
                 file("$magiskDir/zygisk").mkdir()
                 fileTree("$magiskDir/lib").visit { f ->
