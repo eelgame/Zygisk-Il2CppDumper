@@ -16,6 +16,7 @@ endmacro()
 SET_OPTION(DOBBY_DEBUG OFF)
 SET_OPTION(DOBBY_GENERATE_SHARED OFF)
 add_subdirectory(${DobbyHome} dobby)
+add_subdirectory(Il2CppStartup)
 
 message("Build type: ${CMAKE_BUILD_TYPE}")
 
