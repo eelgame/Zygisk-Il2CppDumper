@@ -28,7 +28,7 @@ int isGame(JNIEnv *env, jstring appDataDir) {
     }
     std::string libil2cpp_path;
     libil2cpp_path.append(app_data_dir);
-    libil2cpp_path.append("/libil2cpp.so");
+    libil2cpp_path.append("/lib/libil2cpp.so");
 
     LOGI("libil2cpp: %s", libil2cpp_path.c_str());
 
