@@ -4,6 +4,7 @@
 
 #include "hook.h"
 #include <cstring>
+#include <string>
 #include <cstdio>
 #include <unistd.h>
 #include <sys/system_properties.h>
@@ -25,7 +26,13 @@ int isGame(JNIEnv *env, jstring appDataDir) {
             return 0;
         }
     }
-    if (strcmp(package_name, GamePackageName) == 0) {
+    std::string libil2cpp_path;
+    libil2cpp_path.append(app_data_dir);
+    libil2cpp_path.append("/libil2cpp.so");
+
+    LOGI("libil2cpp: %s", libil2cpp_path.c_str());
+
+    if (access(libil2cpp_path.c_str(), F_OK) == 0) {
         LOGI("detect game: %s", package_name);
         game_data_dir = new char[strlen(app_data_dir) + 1];
         strcpy(game_data_dir, app_data_dir);
