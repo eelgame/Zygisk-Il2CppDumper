@@ -11,9 +11,7 @@
 #include <dobby.h>
 #include "il2cpp_dump.h"
 #include "game.h"
-
-#include <string>
-#include <fstream>
+#include <dirent.h>
 
 int isGame(JNIEnv *env, jstring appDataDir) {
     if (!appDataDir)
@@ -28,19 +26,12 @@ int isGame(JNIEnv *env, jstring appDataDir) {
             return 0;
         }
     }
-    std::string libil2cpp_path;
-    libil2cpp_path.append(app_data_dir);
-    libil2cpp_path.append("/lib/libil2cpp.so");
 
-    LOGI("libil2cpp: %s", libil2cpp_path.c_str());
+    game_data_dir = new char[strlen(app_data_dir) + 1];
+    strcpy(game_data_dir, app_data_dir);
 
-    std::ifstream file;
-    file.open(libil2cpp_path);
-
-    if (file) {
+    if (strcmp(package_name, GamePackageName) == 0) {
         LOGI("detect game: %s", package_name);
-        game_data_dir = new char[strlen(app_data_dir) + 1];
-        strcpy(game_data_dir, app_data_dir);
         env->ReleaseStringUTFChars(appDataDir, app_data_dir);
         return 1;
     } else {
@@ -84,45 +75,41 @@ HOOK_DEF(void*, do_dlopen_V19, const char *name, int flags, const void *extinfo)
     return handle;
 }
 
+//int il2cpp_init(const char* domain_name)
+HOOK_DEF(int, il2cpp_init, const char* domain_name) {
+    auto ret = orig_il2cpp_init(domain_name);
+    LOGI("il2cpp_init");
+
+    il2cpp_dump(il2cpp_handle, game_data_dir);
+
+    return ret;
+}
+
+//void* (*dlsym_ptr)(void* __handle, const char* __symbol);
+HOOK_DEF(void*, dlsym, void* __handle, const char* __symbol) {
+    auto ret = orig_dlsym(__handle, __symbol);
+
+    if (strcmp("il2cpp_init", __symbol) == 0)
+    {
+        LOGI("dlsym %p, %s", __handle, __symbol);
+        il2cpp_handle = __handle;
+        orig_il2cpp_init = (int (*)(const char* domain_name))ret;
+        return (void*)new_il2cpp_init;
+    }
+
+    return ret;
+}
+
 void *hack_thread(void *arg) {
     LOGI("hack thread: %d", gettid());
     int api_level = GetAndroidApiLevel();
     LOGI("api level: %d", api_level);
-    if (api_level >= 30) {
-        void *addr = DobbySymbolResolver(nullptr,
-                                         "__dl__Z9do_dlopenPKciPK17android_dlextinfoPKv");
-        if (addr) {
-            LOGI("do_dlopen at: %p", addr);
-            DobbyHook(addr, (void *) new_do_dlopen_V24,
-                      (void **) &orig_do_dlopen_V24);
-        }
-    } else if (api_level >= 26) {
-        void *libdl_handle = dlopen("libdl.so", RTLD_LAZY);
-        void *addr = dlsym(libdl_handle, "__loader_dlopen");
-        LOGI("__loader_dlopen at: %p", addr);
-        DobbyHook(addr, (void *) new___loader_dlopen,
-                  (void **) &orig___loader_dlopen);
-    } else if (api_level >= 24) {
-        void *addr = DobbySymbolResolver(nullptr,
-                                         "__dl__Z9do_dlopenPKciPK17android_dlextinfoPv");
-        if (addr) {
-            LOGI("do_dlopen at: %p", addr);
-            DobbyHook(addr, (void *) new_do_dlopen_V24,
-                      (void **) &orig_do_dlopen_V24);
-        }
-    } else {
-        void *addr = DobbySymbolResolver(nullptr,
-                                         "__dl__Z9do_dlopenPKciPK17android_dlextinfo");
-        if (addr) {
-            LOGI("do_dlopen at: %p", addr);
-            DobbyHook(addr, (void *) new_do_dlopen_V19,
-                      (void **) &orig_do_dlopen_V19);
-        }
-    }
-    while (!il2cpp_handle) {
-        sleep(1);
-    }
-    sleep(5);
-    il2cpp_dump(il2cpp_handle, game_data_dir);
+
+//    void* libc_handle = dlopen("libc.so", RTLD_LAZY);
+//    LOGI("libc handle: %p", libc_handle);
+
+    void* addr = DobbySymbolResolver("libc.so", "dlsym");
+    DobbyHook(addr, (void *) new_dlsym, (void **) &orig_dlsym);
+
     return nullptr;
 }
