@@ -4,7 +4,6 @@
 
 #include "hook.h"
 #include <cstring>
-#include <string>
 #include <cstdio>
 #include <unistd.h>
 #include <sys/system_properties.h>
@@ -12,6 +11,9 @@
 #include <dobby.h>
 #include "il2cpp_dump.h"
 #include "game.h"
+
+#include <string>
+#include <fstream>
 
 int isGame(JNIEnv *env, jstring appDataDir) {
     if (!appDataDir)
@@ -32,7 +34,10 @@ int isGame(JNIEnv *env, jstring appDataDir) {
 
     LOGI("libil2cpp: %s", libil2cpp_path.c_str());
 
-    if (access(libil2cpp_path.c_str(), F_OK) == 0) {
+    std::ifstream file;
+    file.open(libil2cpp_path);
+
+    if (file) {
         LOGI("detect game: %s", package_name);
         game_data_dir = new char[strlen(app_data_dir) + 1];
         strcpy(game_data_dir, app_data_dir);
